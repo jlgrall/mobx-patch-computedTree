@@ -5,29 +5,16 @@
 
 // UTILITIES FUNCTIONS:
 
-var isPlainObject = function(value) {	// See: https://github.com/mobxjs/mobx/blob/master/src/utils/utils.ts#L85
-		if (value === null || typeof value !== "object") return false;
-		var proto = Object.getPrototypeOf(value);
-		return proto === Object.prototype || proto === null;
-	},
-	isMap = function(thing) {	// See: https://github.com/mobxjs/mobx/blob/master/src/utils/utils.ts#L145
-		return thing instanceof Map;
-	},
-	
-	$mobx = mobx.$mobx,
+var $mobx = mobx.$mobx,
 	observable = mobx.observable,
 	computed = mobx.computed,
+	action = mobx.action,
 	intercept = mobx.intercept,
 	onBecomeUnobserved = mobx.onBecomeUnobserved,
 	getAtom = mobx.getAtom,
 	getDebugName = mobx.getDebugName,
 	
-	isObservable = mobx.isObservable,
-	isObservableMap = mobx.isObservableMap,
-	isComputedProp = mobx.isComputedProp,
-	
-	action = mobx.action,
-	allowStateChangesInsideComputed = function(func) {	// See: https://github.com/mobxjs/mobx/blob/master/src/core/action.ts#108
+	allowStateChangesInsideComputed = function(func) {	// See: https://github.com/mobxjs/mobx/blob/5.6.0/src/core/action.ts#108
 		return function() {
 			var prev = globalState.computationDepth;
 			globalState.computationDepth = 0;
@@ -40,6 +27,20 @@ var isPlainObject = function(value) {	// See: https://github.com/mobxjs/mobx/blo
 			return res;
 		};
 	},
+	
+	// We need to use the same type checks as MobX:
+	isPlainObject = function(value) {	// See: https://github.com/mobxjs/mobx/blob/5.6.0/src/utils/utils.ts#L85
+		if (value === null || typeof value !== "object") return false;
+		var proto = Object.getPrototypeOf(value);
+		return proto === Object.prototype || proto === null;
+	},
+	isMap = function(thing) {	// See: https://github.com/mobxjs/mobx/blob/5.6.0/src/utils/utils.ts#L145
+		return thing instanceof Map;
+	},
+	
+	isObservable = mobx.isObservable,
+	isObservableMap = mobx.isObservableMap,
+	isComputedProp = mobx.isComputedProp,
 	
 	invariant = function(check, message) {
 		if (!check) throw new Error("[computedTree] " + message);
@@ -89,8 +90,8 @@ var patchComputedTreeBox = action(allowStateChangesInsideComputed(function(compu
 var createComputedTreeDecorator = function(_patchBoxed, _treeDecorator, _patch_replaceValue) {
 	// The decorator.
 	// See: 
-	// - https://github.com/mobxjs/mobx/blob/master/src/utils/decorators.ts#74
-	// - https://github.com/mobxjs/mobx/blob/master/src/api/decorate.ts#39
+	// - https://github.com/mobxjs/mobx/blob/5.6.0/src/utils/decorators.ts#74
+	// - https://github.com/mobxjs/mobx/blob/5.6.0/src/api/decorate.ts#39
 	return function(target, prop, descriptor, applyImmediately) {
 		// The boxed observable that contains all data for the current computedTree:
 		var computedTreeBox = observable.box(undefined, {
@@ -112,7 +113,7 @@ var createComputedTreeDecorator = function(_patchBoxed, _treeDecorator, _patch_r
 		};
 		
 		// Execute the computed decorator on the current property:
-		computed.call(this, target, prop, descriptor, applyImmediately);
+		computed(target, prop, descriptor, applyImmediately);
 		var computedValue = getAtom(target, prop);
 		
 		computedValue.computedTreeBox = computedTreeBox;
@@ -157,7 +158,7 @@ var modificationInterceptor = function(change) {
 // - uses `treeDecorator` as default decorator for generated observables.
 // - assigns the tree id `cT_id` to the generated observables.
 // - sets up the `modificationInterceptor` to intercept changes in the generated observables.
-// See: https://github.com/mobxjs/mobx/blob/master/src/types/modifiers.ts#L17
+// See: https://github.com/mobxjs/mobx/blob/5.6.0/src/types/modifiers.ts#L17
 var treeEnhancer = function(v, oldValue, name) {	// TODO: use oldValue to patch here instead of using the `patch()` function ?
 	if (isObservable(v)) return v;
 	
@@ -186,21 +187,22 @@ var treeEnhancer = function(v, oldValue, name) {	// TODO: use oldValue to patch 
 
 var treeDecorator = function() {
 	// Luckily this decorator is never executed, because implementing it outside MobX is not easy.
-	// If implementation is needed, see: createDecoratorForEnhancer()  (https://github.com/mobxjs/mobx/blob/master/src/api/observabledecorator.ts#L15)
+	// If implementation is needed, see: createDecoratorForEnhancer()  (https://github.com/mobxjs/mobx/blob/5.6.0/src/api/observabledecorator.ts#L15)
 	throw new Error("[computedTree] treeDecorator()");
 };
 // Required to pass the enhancer deeper in the tree:
-// (See: `IObservableDecorator`   https://github.com/mobxjs/mobx/blob/master/src/api/observabledecorator.ts#12)
+// (See: `IObservableDecorator`   https://github.com/mobxjs/mobx/blob/5.6.0/src/api/observabledecorator.ts#12)
 treeDecorator.enhancer = treeEnhancer;
 
 // Hook into `patch` which prevents reusing observables that don't belong to the tree:
 // See function `defaultReplaceValue()` in MobX-patch.
-var patch_replaceValue = function(oldValue, newValue, oldValue_OT, newValue_T, _defaultReplaceValue) {
+var patch_replaceValue = function(oldValue_OT, newValue_T, oldValue, newValue, _defaultReplaceValue) {
 	// Constants from mobx-patch.js:
 	var OT_OTHER = 0,
 		OT_OBJECT = 1,
 		OT_ARRAY = 2,
-		OT_MAP = 3;
+		OT_MAP = 3,
+		OT_EXTENDEDOBJECT = 4;
 	
 	invariant(globalState.cT_patchingTree_id !== undefined, "globalState.cT_patchingTree_id is undefined");
 	
@@ -208,13 +210,66 @@ var patch_replaceValue = function(oldValue, newValue, oldValue_OT, newValue_T, _
 	if (oldValue_OT !== OT_OTHER) {
 		if (oldValue_OT === OT_OBJECT && oldValue[$mobx].cT_id !== globalState.cT_patchingTree_id
 		||  oldValue_OT === OT_ARRAY && oldValue[$mobx].cT_id !== globalState.cT_patchingTree_id
-		||  oldValue_OT === OT_MAP && oldValue.cT_id !== globalState.cT_patchingTree_id) {
+		||  oldValue_OT === OT_MAP && oldValue.cT_id !== globalState.cT_patchingTree_id
+		||  oldValue_OT === OT_EXTENDEDOBJECT && oldValue[$mobx].cT_id !== globalState.cT_patchingTree_id) {
 			oldValue_OT = OT_OTHER;	// Setting to OT_OTHER will force the use of a new value.
 		}
 	}
 	// Now execute the default replaceValue:
-	return _defaultReplaceValue(oldValue, newValue, oldValue_OT, newValue_T);
+	return _defaultReplaceValue(oldValue_OT, newValue_T, oldValue, newValue);
 };
+
+
+// ES6 SYMBOLS FOR DEFINING COMPUTEDTREES
+
+var $computedTree = Symbol("mobx-computedTree: $computedTree"),
+	$decorators = Symbol("mobx-computedTree: $decorators"),
+	$defaultDecorator = Symbol("mobx-computedTree: $defaultDecorator");
+
+// Extends an observable with the computedTree definitions from the properties's symbol $computedTree.
+var extendFromComputedTreeSymbols = function(target, properties) {
+	// This is not wrapped in a batch like in mobx.extendObservable(). But as there should
+	// only be computedValues, it shouldn't matter.
+	var props = properties[$computedTree];
+	if (props) {
+		var decorators = props[$decorators] || undefined;
+		var defaultDecorator = props[$defaultDecorator] || computedTreeDecorator;
+		Object.keys(props).forEach(function(key) {
+			var descriptor = Object.getOwnPropertyDescriptor(props, key);
+			var decorator = ( decorators && decorators[key] ) || defaultDecorator;
+			decorator(target, key, descriptor, true);
+		});
+	}
+	return target;
+};
+
+// Adding support for $computedTree in mobx.extendObservable().
+// We just wrap the original function in a new custom function:
+mobx.extendObservable = (function(extendObservable) {	// See: https://github.com/mobxjs/mobx/blob/5.6.0/src/api/extendobservable.ts#19
+	return function(target, properties, decorators, options) {
+		return extendFromComputedTreeSymbols(extendObservable(target, properties, decorators, options), properties);
+	};
+})(mobx.extendObservable);
+
+// Adding support for $computedTree in mobx.observable.object().
+// We just wrap the original function in a new custom function:
+mobx.observable.object = (function(observable_object) {	// See: https://github.com/mobxjs/mobx/blob/5.6.0/src/api/observable.ts#160
+	return function(props, decorators, options) {
+		return extendFromComputedTreeSymbols(observable_object(props, decorators, options), props);
+	};
+})(mobx.observable.object);
+
+// Adding support for $computedTree in patch.extender().
+// We just wrap the original function in a new custom function:
+window.patch.extender = (function(extender) {
+	return function(base) {
+		if (base[$computedTree]) {
+			if (base[$computedTree][$decorators]) Object.freeze(base[$computedTree][$decorators]);
+			Object.freeze(base[$computedTree]);
+		}
+		return extender(base);
+	};
+})(window.patch.extender);
 
 
 // EXPORTING:
@@ -226,7 +281,12 @@ window.computedTree = computedTreeDecorator;
 computedTreeDecorator.objToMap = computedTreeDecoratorObjectAsMap;
 computedTreeDecorator.isComputedTreeProp = isComputedTreeProp;
 
+computedTreeDecorator.$computedTree = $computedTree;
+computedTreeDecorator.$decorators = $decorators;
+computedTreeDecorator.$defaultDecorator = $defaultDecorator;
+
 
 computedTreeDecorator._createComputedTreeDecorator = createComputedTreeDecorator;
 computedTreeDecorator._patchComputedTreeBox = patchComputedTreeBox;
+computedTreeDecorator._extendFromComputedTreeSymbols = extendFromComputedTreeSymbols;
 })(window, mobx, __mobxGlobals, patch.boxed);
