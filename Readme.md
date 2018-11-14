@@ -56,7 +56,7 @@ Only tested with MobX 5.5
 
 
 **Browser support:**  
-Any browser that [supports MobX 5](https://github.com/mobxjs/mobx#browser-support). (Not Edge 12 nor Node 5.)  
+Any browser that [supports MobX 5](https://github.com/mobxjs/mobx#browser-support). (Not Edge 12 nor Node 5)  
 Lit of ES6 features used:
 - [for..of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of) and [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment) (can be transpiled to ES5)
 - [ES6 Maps](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map) and [ES6 Symbols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol)
@@ -105,12 +105,20 @@ patch.prop(heap, "msg", undefined);
 // heap.colors === oldColors  (untouched)
 ```
 
-### Extender (for computed values)
+### Reuse behavior:
+
+When patching, we make sure to get the same structural result as if you had directly assigned the new values to the patched observable data structure. For instance, the patched object's own [decorator](https://mobx.js.org/refguide/modifiers.html) is executed as it should on the new values, as expected from MobX.
+
+We reuse plain objects, arrays and [ES6 Maps](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map) only if there is already an observable value of the same type (plain object, array or Map). Otherwise it is replaced by a newly created value of that type.
+
+### Extender (patching with computed values)
 
 If you use an extender, you can easily and efficiently use computed values on your patched observables.
 
 First define an extender that defines the computed values.  
 Then when patching (or when creating new observable plain objects), you need to pass the extender along with the properties (via the [Symbol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol) property `patch.$extend`). The extender is used to recognize patched objects so that they can either be reused or replaced with new objects as needed. (As observable plain objects must have been created from the same extender to be reused.)
+
+The loaded Mobx instance is automatically modified to support the `patch.$extend` symbol property. Thus you can use `patch.$extend` everywhere that new observable plain objects are created by Mobx. This includes `obervable()`, `obervable.object()`. It also includes any plain object that is assigned to an observable data structure and who is automatically turned to an observable plain object by Mobx. Are excluded: `extendObservable()` and `decorate()` because they don't create new observables.
 
 ```javascript
 var Animal = patch.extender({
@@ -144,12 +152,6 @@ console.log('=> Only the "Turtle COLOR" autorun has been re-executed.');
 // zoo.panther.color === "black"  (Added)
 // zoo.panther.COLOR === "BLACK"  (Added)
 ```
-
-### Reuse behavior:
-
-When patching, we make sure to get the same structural result as if you had directly assigned the new values to the patched observable data structure. For instance, the patched object's own [decorator](https://mobx.js.org/refguide/modifiers.html) is executed as it should on the new values, as expected from MobX.
-
-We reuse plain objects, arrays and [ES6 Maps](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map) only if there is already an observable value of the same type (plain object, array or Map). Otherwise it is replaced by a newly created value of that type.
 
 ### API
 
@@ -233,9 +235,6 @@ patch.isExtenderOf(Square, square);	// => true
 
 The [ES6 Symbol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol) that, when used as a property key, specifies the extender that is to be used for the current plain object when it is turned to an observable.
 
-
-The loaded Mobx instance is automatically modified to support the `patch.$extend` symbol property. Thus you can use `patch.$extend` everywhere that new observable plain objects are created by Mobx. This includes `obervable()`, `obervable.object()`. It also includes any plain object that is assigned to an observable data structure and who is automatically turned to an observable plain object by Mobx. Are excluded: `extendObservable()` and `decorate()` because they don't create new observables.
-
 ```javascript
 var oneSquare = observable({side: 3, [patch.$extend]: Square});
 patch(oneSquare, {side: 10, [patch.$extend]: Square});
@@ -302,9 +301,11 @@ console.log('=> Only the "Low price" and "High price" autoruns have been re-exec
 
 ### Defining computedTrees using ES6 Symbols
 
-When you need to define computedTrees but you cannot specify the decorators separately, you can use the provided [ES6 symbol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol) property `computedTree.$computedTree` to separate the computed trees from the computed values in the same properties object.
+When you need to define computedTrees but you cannot specify the decorators separately, you can use the provided [ES6 Symbol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol) property `computedTree.$computedTree` to separate the computed trees from the computed values in the same properties object.
 
-Here is a simple example:
+_Note: support for [mobx-state-tree](https://github.com/mobxjs/mobx-state-tree) is provided in the script `mobx-computedtree_support-MST.js`._
+
+For example when defining an extender, the only way to define decorators is with th symbol property `computedTree.$computedTree`:
 
 ```javascript
 var Num = patch.extender({
@@ -317,6 +318,7 @@ var Num = patch.extender({
 		}
 	}
 });
+
 var numbers = observable({
 	simple: [{n: 3, [patch.$extend]: Num}, {n: Math.PI, [patch.$extend]: Num}],
 	get howMany(){	// This will be a computed value
@@ -335,7 +337,7 @@ var numbers = observable({
 // numbers.double[1].trig.cos === 1
 ```
 
-When you define computed trees under a `$computedTree` symbol, you can add the following extra symbols to control which decorators to apply to which property:
+If you need more control over the decorators applied under a `$computedTree` property, use the following provided symbols:
 - `$decorators`: to define specific decorators for the corrent properties.
 - `$defaultDecorator`: to define the default decorator for the current properties that don't have a specific decorator defined under the `$decorators` symbol.
 
