@@ -7,14 +7,14 @@ Two components: **`patch`** and **`computedTree`**.
 **`patch`** updates an observable data structure in an efficient way:
 ```javascript
 var state = observable({
-	firstName: "John",
-	sleeping: true,
-	ranges: {low: [0, 2], high: [7, 9]}
+  firstName: "John",
+  sleeping: true,
+  ranges: {low: [0, 2], high: [7, 9]}
 });
 patch(state, {
-	firstName: "John",
-	lastName: "Smith",
-	ranges: {low: [0, 2], mid: [3, 6] high: [7, 999]}
+  firstName: "John",
+  lastName: "Smith",
+  ranges: {low: [0, 2], mid: [3, 6] high: [7, 999]}
 });
 ```
 
@@ -22,20 +22,20 @@ patch(state, {
 
 ```javascript
 var weather = mobx.observable({
-	records: [{T: 7}, {T: 3}, {T: -2}, {T: -5}, {T: -1}, {T: 3}, {T: -1}],
-	get sorted() {
-		var pos = [], neg = [], min = this.records[0].T;
-		this.records.forEach(record => {
-			if(record.T < 0) neg.push(record.T);
-			else pos.push(record.T);
-			if (record.T < min) min = record.T;
-		});
-		return {pos: pos, neg: neg, min: min};
-	}
+  records: [{T: 7}, {T: 3}, {T: -2}, {T: -5}, {T: -1}, {T: 3}, {T: -1}],
+  get sorted() {
+    var pos = [], neg = [], min = this.records[0].T;
+    this.records.forEach(record => {
+      if(record.T < 0) neg.push(record.T);
+      else pos.push(record.T);
+      if (record.T < min) min = record.T;
+    });
+    return {pos: pos, neg: neg, min: min};
+  }
 }, {sorted: computedTree});
 mobx.autorun(() => {
-	console.log(weather.sorted.neg.length + " days of negative temperatures");
-	console.log("Min = " + weather.sorted.min + "°");
+  console.log(weather.sorted.neg.length + " days of negative temperatures");
+  console.log("Min = " + weather.sorted.min + "°");
 });
 ```
 
@@ -73,18 +73,18 @@ _Note: unlike in the following examples, always use `patch` in an [action](https
 
 ```javascript
 var heap = observable({
-	colors: ["violet", "green"],
-	sizes: {T: "Tiny", S: "Small", M: "MEDIUM"},
-	msg: [{greet: "Hello", who: "world"}]
-	lastUpdate: "yesterday"
+  colors: ["violet", "green"],
+  sizes: {T: "Tiny", S: "Small", M: "MEDIUM"},
+  msg: [{greet: "Hello", who: "world"}]
+  lastUpdate: "yesterday"
 });
 var oldColors = heap.colors;
 
 patch(heap, {
-	colors: ["red", "green", "blue"],
-	sizes: {S: "Small", M: "Medium", L:"Large"},
-	msg: {txt: ["Hello", "world"]}
-	nb: new Map([2, "two"], [4, "four"]),
+  colors: ["red", "green", "blue"],
+  sizes: {S: "Small", M: "Medium", L:"Large"},
+  msg: {txt: ["Hello", "world"]}
+  nb: new Map([2, "two"], [4, "four"]),
 });
 // Now:
 // heap.colors === oldColors  (Reusing the old observable array)
@@ -122,14 +122,14 @@ The loaded Mobx instance is automatically modified to support the `patch.$extend
 
 ```javascript
 var Animal = patch.extender({
-	get COLOR () {
-		return this.color.toUpperCase();
-	}
+  get COLOR () {
+    return this.color.toUpperCase();
+  }
 });
 
 var zoo = observable({
-	cat: {color: "red", [patch.$extend]: Animal},
-	turtle: {color: "yellow", [patch.$extend]: Animal},
+  cat: {color: "red", [patch.$extend]: Animal},
+  turtle: {color: "yellow", [patch.$extend]: Animal},
 });
 var oldCat = zoo.cat;
 
@@ -138,9 +138,9 @@ autorun(() => console.log("Turtle COLOR:", zoo.turtle.COLOR));
 
 console.log("Patching zoo...");
 patch(zoo, {
-	cat: {color: "red", [patch.$extend]: Animal},
-	turtle: {color: "green", [patch.$extend]: Animal},
-	panther: {color: "black", [patch.$extend]: Animal},
+  cat: {color: "red", [patch.$extend]: Animal},
+  turtle: {color: "green", [patch.$extend]: Animal},
+  panther: {color: "black", [patch.$extend]: Animal},
 });
 console.log('=> Only the "Turtle COLOR" autorun has been re-executed.');
 // Now:
@@ -210,15 +210,15 @@ Returns: the extender (It is actually the frozen `properties`)
 
 ```javascript
 var Square = patch.extender({
-	get perimeter() {
-		return 4 * this.side;
-	},
-	get area() {
-		return this.side * this.side;
-	},
-	set area(area) {
-		this.side = Math.sqrt(area);
-	},
+  get perimeter() {
+    return 4 * this.side;
+  },
+  get area() {
+    return this.side * this.side;
+  },
+  set area(area) {
+    this.side = Math.sqrt(area);
+  },
 });
 ```
 
@@ -228,7 +228,7 @@ Returns true if `thing` was created from the extender object `extender`.
 
 ```javascript
 var square = observable({side: 1, [patch.$extend]: Square});
-patch.isExtenderOf(Square, square);	// => true
+patch.isExtenderOf(Square, square); // => true
 ```
 
 #### patch.$extend
@@ -239,7 +239,7 @@ The [ES6 Symbol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Referen
 var oneSquare = observable({side: 3, [patch.$extend]: Square});
 patch(oneSquare, {side: 10, [patch.$extend]: Square});
 var squaresArray = patch(observable.array([]), [
-	{side: 20, [patch.$extend]: Square},
+  {side: 20, [patch.$extend]: Square},
 ]);
 squaresArray.push({side: 50, [patch.$extend]: Square});
 ```
@@ -264,25 +264,25 @@ _Note: no need to use an [action](https://mobx.js.org/refguide/action.html) beca
 
 ```javascript
 var store = observable({
-	products: new Map([
-		[1, {id: 1, name: "Paper", price: 1, stock: 50}],
-		[2, {id: 2, name: "Pen", price: 5, stock: 25}],
-		[3, {id: 3, name: "Notebook", price: 12, stock: 8}],
-		[4, {id: 4, name: "Calendar", price: 30, stock: 40}],
-		[5, {id: 5, name: "Backpack", price: 40, stock: 2}],
-	]),
-	get lowStock() {
-		return Array.from(this.products, ([id, product]) => product).filter(product => product.stock < 10);
-	},
-	get byPriceRange() {
-		var low = new Map(), mid = new Map(), high = new Map();
-		this.products.forEach(product => {
-			if(product.price < 10) low.set(product.id, product);
-			else if(product.price < 20) mid.set(product.id, product);
-			else high.set(product.id, product);
-		});
-		return {low: low, mid: mid, high: high};
-	},
+  products: new Map([
+    [1, {id: 1, name: "Paper", price: 1, stock: 50}],
+    [2, {id: 2, name: "Pen", price: 5, stock: 25}],
+    [3, {id: 3, name: "Notebook", price: 12, stock: 8}],
+    [4, {id: 4, name: "Calendar", price: 30, stock: 40}],
+    [5, {id: 5, name: "Backpack", price: 40, stock: 2}],
+  ]),
+  get lowStock() {
+    return Array.from(this.products, ([id, product]) => product).filter(product => product.stock < 10);
+  },
+  get byPriceRange() {
+    var low = new Map(), mid = new Map(), high = new Map();
+    this.products.forEach(product => {
+      if(product.price < 10) low.set(product.id, product);
+      else if(product.price < 20) mid.set(product.id, product);
+      else high.set(product.id, product);
+    });
+    return {low: low, mid: mid, high: high};
+  },
 }, {lowStock: computedTree, byPriceRange: computedTree});
 
 autorun(() => console.log("lowStock:", store.lowStock.map(p => p.name)));
@@ -309,26 +309,26 @@ For example when defining an extender, the only way to define decorators is with
 
 ```javascript
 var Num = patch.extender({
-	get neg(){	// This will be a computed value
-		return -this.n;
-	},
-	[computedTree.$computedTree]: {
-		get trig() {	// This will be a computed tree
-			return {cos: Math.cos(this.n), sin: Math.sin(this.n)};
-		}
-	}
+  get neg(){  // This will be a computed value
+    return -this.n;
+  },
+  [computedTree.$computedTree]: {
+    get trig() {  // This will be a computed tree
+      return {cos: Math.cos(this.n), sin: Math.sin(this.n)};
+    }
+  }
 });
 
 var numbers = observable({
-	simple: [{n: 3, [patch.$extend]: Num}, {n: Math.PI, [patch.$extend]: Num}],
-	get howMany(){	// This will be a computed value
-		return this.simple.length;
-	},
-	[computedTree.$computedTree]: {
-		get double() {	// This will be a computed tree
-			return this.simple.map(o => ({n: o.n * 2, [patch.$extend]: Num}));
-		}
-	}
+  simple: [{n: 3, [patch.$extend]: Num}, {n: Math.PI, [patch.$extend]: Num}],
+  get howMany(){  // This will be a computed value
+    return this.simple.length;
+  },
+  [computedTree.$computedTree]: {
+    get double() {  // This will be a computed tree
+      return this.simple.map(o => ({n: o.n * 2, [patch.$extend]: Num}));
+    }
+  }
 });
 // Now:
 // numbers.howMany === 2
@@ -350,50 +350,50 @@ var $decorators = computedTree.$decorators;
 var $defaultDecorator = computedTree.$defaultDecorator;
 
 var Car = patch.extender({
-	[$computedTree]: {
-		get doors() {	// This will be a computed tree
-			var doors = [];
-			while (doors.length < this.nbDoors) doors.push({color: this.color});
-			return doors;
-		}
-	}
+  [$computedTree]: {
+    get doors() { // This will be a computed tree
+      var doors = [];
+      while (doors.length < this.nbDoors) doors.push({color: this.color});
+      return doors;
+    }
+  }
 });
 
 var garage = observable({
-	cars: [
-		{color: "red", nbDoors: 2, [$extend]: Car},
-		{color: "red", nbDoors: 5, [$extend]: Car},
-		{color: "blue", nbDoors: 2, [$extend]: Car},
-		{color: "blue", nbDoors: 2, [$extend]: Car},
-		{color: "white", nbDoors: 4, [$extend]: Car},
-		{color: "yellow", nbDoors: 4, [$extend]: Car},
-	],
-	get nbTwoDoorsCars() {	// This will be a computed value
-		return this.cars.filter(car => car.nbDoors === 2).length;
-	},
-	[$computedTree]: {
-		get fourDoorsCars() {	// This will be a computed tree
-			return this.cars.filter(car => car.nbDoors === 4);
-		},
-		get nbFourDoorsCars() {	// This will be a computed value
-			return this.fourDoorsCars.length;
-		},
-		get carsByColors() {	// This will be a computed tree with objects converted to Maps
-			var map = {};
-			for (var car of this.cars) {
-				if (!(car.color in map)) map[car.color] = [];
-				map[car.color].push(car);
-			}
-			return map;
-		},
-		// Define specific decorators for the current properties:
-		[$decorators]: {
-			fourDoorsCars: computedTree,
-			nbFourDoorsCars: mobx.computed,
-		},
-		// Define the default decorator for the current properties without specific decorator:
-		[$defaultDecorator]: computedTree.objToMap
-	}
+  cars: [
+    {color: "red", nbDoors: 2, [$extend]: Car},
+    {color: "red", nbDoors: 5, [$extend]: Car},
+    {color: "blue", nbDoors: 2, [$extend]: Car},
+    {color: "blue", nbDoors: 2, [$extend]: Car},
+    {color: "white", nbDoors: 4, [$extend]: Car},
+    {color: "yellow", nbDoors: 4, [$extend]: Car},
+  ],
+  get nbTwoDoorsCars() {  // This will be a computed value
+    return this.cars.filter(car => car.nbDoors === 2).length;
+  },
+  [$computedTree]: {
+    get fourDoorsCars() { // This will be a computed tree
+      return this.cars.filter(car => car.nbDoors === 4);
+    },
+    get nbFourDoorsCars() { // This will be a computed value
+      return this.fourDoorsCars.length;
+    },
+    get carsByColors() {  // This will be a computed tree with objects converted to Maps
+      var map = {};
+      for (var car of this.cars) {
+        if (!(car.color in map)) map[car.color] = [];
+        map[car.color].push(car);
+      }
+      return map;
+    },
+    // Define specific decorators for the current properties:
+    [$decorators]: {
+      fourDoorsCars: computedTree,
+      nbFourDoorsCars: mobx.computed,
+    },
+    // Define the default decorator for the current properties without specific decorator:
+    [$defaultDecorator]: computedTree.objToMap
+  }
 });
 // Now:
 // garage.cars[0].doors[0].color === "red"
@@ -421,11 +421,11 @@ Returns true if the designated property is a computedTree value.
 
 ```javascript
 var store = mobx.observable({
-	get greeting() {
-		return "hello";
-	}
+  get greeting() {
+    return "hello";
+  }
 }, {greeting: computedTree});
-computedTree.isComputedTreeProp(store, "greeting")	// => true
+computedTree.isComputedTreeProp(store, "greeting")  // => true
 ```
 
 #### computedTree.$computedTree
