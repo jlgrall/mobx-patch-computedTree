@@ -9,6 +9,7 @@ var $mobx = mobx.$mobx,
 	observable = mobx.observable,
 	computed = mobx.computed,
 	action = mobx.action,
+	set = mobx.set,
 	intercept = mobx.intercept,
 	onBecomeUnobserved = mobx.onBecomeUnobserved,
 	getAtom = mobx.getAtom,
@@ -57,7 +58,7 @@ var $mobx = mobx.$mobx,
 // - It injects a custom get() function before calling the computed() decorator
 //   to create a normal computed value property.
 // - The custom get() function is the one that updates/patches the tree.
-// - While patching the tree, we need special interceptor and enhancer functions to 
+// - While patching the tree, we need special interceptor and enhancer functions to
 //   prevent modification of any generated observable.
 
 // Additional constraints:
@@ -89,7 +90,7 @@ var patchComputedTreeBox = action(allowStateChangesInsideComputed(function(compu
 // Creates a computedTree decorator for the given parameters:
 var createComputedTreeDecorator = function(_patchBoxed, _treeDecorator, _patch_replaceValue) {
 	// The decorator.
-	// See: 
+	// See:
 	// - https://github.com/mobxjs/mobx/blob/5.6.0/src/utils/decorators.ts#74
 	// - https://github.com/mobxjs/mobx/blob/5.6.0/src/api/decorate.ts#39
 	return function(target, prop, descriptor, applyImmediately) {
@@ -185,10 +186,19 @@ var treeEnhancer = function(v, oldValue, name) {	// TODO: use oldValue to patch 
 	return v;
 };
 
-var treeDecorator = function() {
-	// Luckily this decorator is never executed, because implementing it outside MobX is not easy.
-	// If implementation is needed, see: createDecoratorForEnhancer()  (https://github.com/mobxjs/mobx/blob/5.6.0/src/api/observabledecorator.ts#L15)
-	throw new Error("[computedTree] treeDecorator()");
+var treeDecorator = function(target, propertyName, descriptor, _decoratorTarget, decoratorArgs) {
+	// This decorator is only called for new observables created from extenders because new
+	// observable objects are always created empty (before being filled with mobx.set()).
+	// Thus we know that target will always be a normal plain object, which means that the
+	// implementation can be simpler than the original mobx implementation.
+	// See: createDecoratorForEnhancer()  (https://github.com/mobxjs/mobx/blob/5.6.0/src/api/observabledecorator.ts#L15)
+	// Note: descriptor can be undefined (how ?)
+	if (descriptor && descriptor.get) {
+		computed(target, propertyName, descriptor, true);
+	}
+	else {
+		set(target, propertyName, descriptor && descriptor.value);
+	}
 };
 // Required to pass the enhancer deeper in the tree:
 // (See: `IObservableDecorator`   https://github.com/mobxjs/mobx/blob/5.6.0/src/api/observabledecorator.ts#12)

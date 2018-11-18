@@ -40,7 +40,7 @@ var $mobx = mobx.$mobx,
 /*Object.freeze(EMPTY_OBJECT);
 Object.freeze(EMPTY_ARRAY);
 EMPTY_MAP.set = EMPTY_MAP.delete = EMPTY_MAP.clear = function() {
-	throw new Error("Error: Map is not modifiable.");
+	throw new Error("Map is not modifiable.");
 };/**/
 
 
@@ -184,7 +184,7 @@ var patchObservable = function(target, newValues, replaceValue) {
 	var _oldValue_OT = oldValue_OT === OT_MAP ? OT_OBJECT : oldValue_OT;
 	var _newValue_T = newValue_T === T_MAP ? T_PLAINOBJECT : newValue_T;
 	if (!isCompatibleTypes(_oldValue_OT, _newValue_T, target, newValues)) {
-		throw new Error("Error: type of newValues not compatible with type of observable.");
+		throw new Error("Type of newValues not compatible with type of observable.");
 		// TODO: would be nice to include the types in the message, but that would be cumbersome...
 	}
 	
